@@ -12,19 +12,19 @@ def ci_95(data):
     return res.confidence_interval.low.astype(np.float64), res.confidence_interval.high.astype(np.float64)
 
 
-import neural_capability_maps.dataset.r3 as r3
-import neural_capability_maps.dataset.so3 as so3
-import neural_capability_maps.dataset.se3 as se3
+import nrm.dataset.r3 as r3
+import nrm.dataset.so3 as so3
+import nrm.dataset.se3 as se3
 
-from neural_capability_maps.dataset.morphology import sample_morph
-from neural_capability_maps.dataset.kinematics import inverse_kinematics
-from neural_capability_maps.dataset.capability_map import sample_poses_in_reach, estimate_capability_map
-from neural_capability_maps.logger import binary_confusion_matrix
+from nrm.dataset.morphology import sample_morph
+from nrm.dataset.kinematics import inverse_kinematics
+from nrm.dataset.reachability_manifold import sample_poses_in_reach, estimate_reachability_manifold
+from nrm.logger import binary_confusion_matrix
 
 torch.manual_seed(1)
 
 # Table 1
-for level, (interval, n_robots) in enumerate(zip([1, 1, 10, 100], [50, 50, 50, 20])):
+for level, (interval, n_robots) in enumerate(zip([1, 1, 10, 60], [50, 50, 50, 20])):
     se3.set_level(level + 1)
     print(f"LEVEL {se3.LEVEL}")
     print(f"Fidelity of the discretisation|\t"
@@ -49,8 +49,8 @@ for level, (interval, n_robots) in enumerate(zip([1, 1, 10, 100], [50, 50, 50, 2
 
         true_positives = 0.0
         r_indices = torch.empty(0, dtype=torch.int64)
-        while true_positives < 95.0 and runtime[-1] < 1000:
-            new_r_indices, benchmark, batch_size = estimate_capability_map(morph.to("cuda"), True, seconds=interval,
+        while true_positives < 95.0 and runtime[-1] < 600:
+            new_r_indices, benchmark, batch_size = estimate_reachability_manifold(morph.to("cuda"), True, seconds=interval,
                                                                            batch_size=batch_size)
             r_indices = torch.cat([r_indices, new_r_indices]).unique()
             benchmarks += [torch.tensor(benchmark)]

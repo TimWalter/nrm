@@ -4,9 +4,8 @@ from torch import Tensor
 from beartype import beartype
 from jaxtyping import jaxtyped, Float, Int, Float64, Bool
 from eaik.IK_Homogeneous import HomogeneousRobot
-from scipy.spatial.transform import Rotation
 
-import neural-reacha.dataset.se3 as se3
+import nrm.dataset.se3 as se3
 from nrm.dataset import r3, so3
 from nrm.dataset.self_collision import EPS, collision_check
 from nrm.dataset.manipulability import geometric_jacobian, yoshikawa_manipulability

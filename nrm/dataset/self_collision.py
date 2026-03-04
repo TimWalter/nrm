@@ -117,7 +117,7 @@ def signed_distance_capsule_ball(s1: Float[Tensor, "*batch 3"], e1: Float[Tensor
 
     return point_distance - (r1 + r2) ** 2
 
-PAIR_COMBINATIONS = [torch.triu_indices(2 * dof, 2 * dof, offset=2) for dof in range(1, 8)]
+PAIR_COMBINATIONS = [torch.triu_indices(2 * dof, 2 * dof, offset=2) for dof in range(1, 9)]
 
 
 # #@jaxtyped(typechecker=beartype)

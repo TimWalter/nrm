@@ -1,10 +1,10 @@
 import torch
 
-import neural_capability_maps.dataset.se3 as se3
-from neural_capability_maps.dataset.self_collision import collision_check, EPS
-from neural_capability_maps.dataset.kinematics import pure_analytical_inverse_kinematics, analytical_inverse_kinematics, \
+import nrm.dataset.se3 as se3
+from nrm.dataset.self_collision import collision_check, EPS
+from nrm.dataset.kinematics import pure_analytical_inverse_kinematics, analytical_inverse_kinematics, \
     forward_kinematics, numerical_inverse_kinematics
-from neural_capability_maps.dataset.morphology import sample_morph, get_joint_limits
+from nrm.dataset.morphology import sample_morph, get_joint_limits
 
 torch.set_printoptions(sci_mode=False, precision=2)
 torch.set_default_dtype(torch.float64)
