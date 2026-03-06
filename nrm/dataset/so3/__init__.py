@@ -17,6 +17,27 @@ if not enabled:
 
 
 # @jaxtyped(typechecker=beartype)
+def distance(x1: Float[Tensor, "*batch 3 3"],
+             x2: Float[Tensor, "*batch 3 3"]) -> Float[Tensor, "*batch 1"]:
+    """
+    Geodesic distance between rotation matrices.
+
+    Args:
+        x1: First rotation matrix.
+        x2: Second rotation matrix.
+
+    Returns:
+        Geodesic distance between x1 and x2.
+    """
+    r_err = torch.matmul(x1.transpose(-1, -2), x2)
+    trace = r_err[..., 0, 0] + r_err[..., 1, 1] + r_err[..., 2, 2]
+    cos_angle = (trace - 1.0) / 2.0
+    cos_angle = torch.clamp(cos_angle, -1.0, 1.0)
+    rot_err = torch.arccos(cos_angle)
+    return rot_err.unsqueeze(-1)
+
+
+# @jaxtyped(typechecker=beartype)
 def _generate_lookup(n_div: int, cells: Float[Tensor, "n_cells 3 3"]) -> Int64[Tensor, "n_div n_div n_div"]:
     """
     Generate lookup table.
@@ -106,27 +127,6 @@ def set_level(level: int = 3):
 
 
 set_level()
-
-
-# @jaxtyped(typechecker=beartype)
-def distance(x1: Float[Tensor, "*batch 3 3"],
-             x2: Float[Tensor, "*batch 3 3"]) -> Float[Tensor, "*batch 1"]:
-    """
-    Geodesic distance between rotation matrices.
-
-    Args:
-        x1: First rotation matrix.
-        x2: Second rotation matrix.
-
-    Returns:
-        Geodesic distance between x1 and x2.
-    """
-    r_err = torch.matmul(x1.transpose(-1, -2), x2)
-    trace = r_err[..., 0, 0] + r_err[..., 1, 1] + r_err[..., 2, 2]
-    cos_angle = (trace - 1.0) / 2.0
-    cos_angle = torch.clamp(cos_angle, -1.0, 1.0)
-    rot_err = torch.arccos(cos_angle)
-    return rot_err.unsqueeze(-1)
 
 
 # @jaxtyped(typechecker=beartype)
