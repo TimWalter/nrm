@@ -67,10 +67,10 @@ morphs = sample_morph(args.num_robots, args.dof, args.set != "train")
 root[morph_filename][0:] = torch.nn.functional.pad(morphs, (0, 0, 0, 8 - morphs.shape[1])).cpu().numpy()
 
 file = root[sample_filename]
-file_id = 0
+file_offset = 0
 buffer = torch.zeros(min(args.num_robots * args.num_samples, SHARD_SIZE), sample_dim,
                      dtype=torch.int64 if args.set == "train" else torch.float32)
-buffer_id = 0
+buffer_offset = 0
 for idx, morph in enumerate(tqdm(morphs, desc=f"Generating {args.dof} DOF robots")):
     if args.set == "train":
         cell_indices, labels = sample_reachability_manifold(morph, args.num_samples, seconds=30, use_ik=False)
@@ -84,12 +84,14 @@ for idx, morph in enumerate(tqdm(morphs, desc=f"Generating {args.dof} DOF robots
     morph_ids = torch.full_like(labels, idx + morph_offset)
     samples = torch.cat([morph_ids, poses, labels], dim=1)
 
-    buffer[buffer_id: buffer_id + samples.shape[0]] = samples
-    buffer_id += samples.shape[0]
+    buffer[buffer_offset: buffer_offset + samples.shape[0]] = samples
+    buffer_offset += samples.shape[0]
 
-    if buffer_id * args.num_samples == buffer.shape[0] or idx == morphs.shape[0] - 1:
-        buffer = buffer[torch.randperm(buffer.shape[0])]
+    if buffer_offset == buffer.shape[0] or idx == morphs.shape[0] - 1:
+        active_data = buffer[:buffer_offset]
 
-        file[file_idx: file_idx + buffer.shape[0]] = buffer.cpu().numpy()
-        file_idx += buffer.shape[0]
-        buffer_id = 0
+        active_data = active_data[torch.randperm(active_data.shape[0])]
+
+        file[file_offset: file_offset + active_data.shape[0]] = active_data.cpu().numpy()
+        file_idx += active_data.shape[0]
+        buffer_offset = 0
