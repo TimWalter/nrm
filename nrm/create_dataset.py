@@ -93,5 +93,5 @@ for idx, morph in enumerate(tqdm(morphs, desc=f"Generating {args.dof} DOF robots
         active_data = active_data[torch.randperm(active_data.shape[0])]
 
         file[file_offset: file_offset + active_data.shape[0]] = active_data.cpu().numpy()
-        file_idx += active_data.shape[0]
+        file_offset += active_data.shape[0]
         buffer_offset = 0
