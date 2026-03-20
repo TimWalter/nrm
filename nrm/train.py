@@ -17,7 +17,7 @@ def main(model_class: Type[Model],
          early_stopping: int,
          lr: float,
          trial: optuna.Trial = None):
-    device = torch.device("cuda:1")
+    device = torch.device("cuda")
 
     training_set = TrainingSet(batch_size, True)
     validation_set = ValidationSet(batch_size, False)
