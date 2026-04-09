@@ -9,7 +9,7 @@ from nrm.dataset.manipulability import geometric_jacobian, yoshikawa_manipulabil
 
 
 # @jaxtyped(typechecker=beartype)
-def _sample_link_type(batch_size: int, dof: int) -> Int[Tensor, "batch_size {dof+1}"]:
+def _sample_link_type(batch_size: int, dof: int, device: torch.device) -> Int[Tensor, "batch_size {dof+1}"]:
     """
     Sample link types:
         0 <=> a≠0, d≠0 (General)
@@ -19,11 +19,12 @@ def _sample_link_type(batch_size: int, dof: int) -> Int[Tensor, "batch_size {dof
     Args:
         batch_size: number of robots to sample
         dof: degrees of freedom of the robots
+        device: device to operate on
 
     Returns:
         Link type sampled uniformly
     """
-    link_type = torch.randint(0, 4, size=(batch_size, dof + 1))
+    link_type = torch.randint(0, 4 if dof > 1 else 3, size=(batch_size, dof + 1), device=device)
 
     return link_type
 
@@ -54,8 +55,8 @@ def _sample_link_twist(link_type: Int[Tensor, "batch_size dofp1"]) -> Float[Tens
     Returns:
         Link twist angles
     """
-    link_twist_options = torch.tensor([0, torch.pi / 2, -torch.pi / 2])
-    link_twist_choice = torch.randint(0, 3, size=link_type.shape)
+    link_twist_options = torch.tensor([0, torch.pi / 2, -torch.pi / 2], device=link_type.device)
+    link_twist_choice = torch.randint(0, 3, size=link_type.shape, device=link_type.device)
     link_twist = link_twist_options[link_twist_choice]
     return link_twist
 
@@ -86,9 +87,9 @@ def _reject_link_twist(link_twist: Float[Tensor, "batch_size dofp1"], link_type:
 
 
 # @jaxtyped(typechecker=beartype)
-def _sample_analytically_solvable_link_types_and_twist(batch_size: int, dof: int) \
+def _sample_analytically_solvable_link_types_and_twist(batch_size: int, dof: int, device: torch.device) \
         -> tuple[Int[Tensor, "batch_size dofp1"], Float[Tensor, "batch_size dofp1"]]:
-    link_type = _sample_link_type(batch_size, dof)
+    link_type = _sample_link_type(batch_size, dof, device)
     link_twist = _sample_link_twist(link_type)
     if dof == 5:
         types = torch.randint(0, 3, size=(batch_size,))
@@ -98,34 +99,34 @@ def _sample_analytically_solvable_link_types_and_twist(batch_size: int, dof: int
             1 <=> (a_2=0 & α_4=0) | (a_3=0 & α_3=0) - One pair of consecutive, intermediate axes intersects while the other is parallel
             2 <=> α_i=0 & α_{i+1}=0, i \in [1, 3]   - Any three consecutive axes are parallel
         """
-        link_type[types == 0, torch.randint(0, 2, ((types == 0).sum().item(),)) * 3 + 1] = 1
+        link_type[types == 0, torch.randint(0, 2, ((types == 0).sum().item(),), device=link_type.device) * 3 + 1] = 1
 
-        axes_choice = torch.randint(0, 2, ((types == 1).sum().item(),))
+        axes_choice = torch.randint(0, 2, ((types == 1).sum().item(),), device=link_type.device)
         link_type[types == 1, axes_choice * 2 + 2] = 1
         link_twist[types == 1, (~axes_choice.bool()) * 2 + 2] = 0
 
-        axes_choice = torch.randint(1, 4, ((types == 2).sum().item(),))
+        axes_choice = torch.randint(1, 4, ((types == 2).sum().item(),), device=link_type.device)
         link_twist[types == 2, axes_choice] = 0
         link_twist[types == 2, axes_choice + 1] = 0
 
     elif dof == 6:
-        types = torch.randint(0, 3, size=(batch_size,))
+        types = torch.randint(0, 3, size=(batch_size,), device=link_type.device)
         """
         6 DOF Analytically solvable robot types:
             0 <=> (a_4=0 & a_5=0 & d_4=0) | (a_1=0 & a_2=0 & d_1=0) - Spherical wrist (3 intersecting axes) at the beginning or end
             1 <=> (α_1=0 & α_2=0 & a_5=0) | (α_4=0 & α_5=0 & a_1=0)                 - 3 Parallel & 2 intersecting axes on opposing ends
             2 <=> (α_2=0 & α_3=0) | (α_3=0 & α_4=0)                                 - 3 Parallel inner axes
         """
-        axes_choice = torch.randint(0, 2, ((types == 0).sum().item(),))
+        axes_choice = torch.randint(0, 2, ((types == 0).sum().item(),), device=link_type.device)
         link_type[types == 0, 1 + 3 * axes_choice] = 3
         link_type[types == 0, 2 + 3 * axes_choice] = 1
 
-        axes_choice = torch.randint(0, 2, ((types == 1).sum().item(),))
+        axes_choice = torch.randint(0, 2, ((types == 1).sum().item(),), device=link_type.device)
         link_type[types == 1, 1 + 4 * axes_choice] = 1
         link_twist[types == 1, 1 + 3 * (~axes_choice.bool())] = 0
         link_twist[types == 1, 2 + 3 * (~axes_choice.bool())] = 0
 
-        axes_choice = torch.randint(2, 4, ((types == 2).sum().item(),))
+        axes_choice = torch.randint(2, 4, ((types == 2).sum().item(),), device=link_type.device)
         link_twist[types == 2, axes_choice] = 0
         link_twist[types == 2, axes_choice + 1] = 0
 
@@ -146,12 +147,12 @@ def _sample_link_length(link_type: Int[Tensor, "batch_size dofp1"]) -> Float[Ten
     Returns:
         Link lengths (a, d)
     """
-    dist = torch.distributions.exponential.Exponential(torch.tensor([1.0]))
+    dist = torch.distributions.exponential.Exponential(torch.tensor([1.0], device=link_type.device))
     link_lengths = dist.sample(torch.Size((*link_type.shape, 1)))[..., 0].repeat(1, 1, 2)
     link_lengths /= (link_lengths * (link_type.unsqueeze(-1) != 3)).sum(dim=1, keepdim=True)
     link_lengths *= torch.sign(torch.rand_like(link_lengths) - 0.5)
 
-    gamma = torch.rand((link_type == 0).sum()) * 2 * torch.pi
+    gamma = torch.rand((link_type == 0).sum(), device=link_type.device) * 2 * torch.pi
     link_lengths[..., 0][link_type == 0] *= torch.sin(gamma).abs()
     link_lengths[..., 1][link_type == 0] *= torch.cos(gamma).abs()
 
@@ -172,13 +173,15 @@ def _reject_link_length(link_length: Float[Tensor, "batch_size dofp1 2"]) -> Boo
         Mask of rejected link lengths
     """
     rejected = ((link_length.abs() < 2 * LINK_RADIUS) & (link_length != 0)).any(dim=(1, 2))
-    rejected |= torch.sqrt((link_length[:, 0, :] ** 2).sum(dim=-1)) > 1 / link_length.shape[1]
-    rejected |= torch.sqrt((link_length[:, -1, :] ** 2).sum(dim=-1)) > 1 / link_length.shape[1]
+    if link_length.shape[1] > 2:
+        rejected |= torch.sqrt((link_length[:, 0, :] ** 2).sum(dim=-1)) > 1 / link_length.shape[1]
+        rejected |= torch.sqrt((link_length[:, -1, :] ** 2).sum(dim=-1)) > 1 / link_length.shape[1]
     return rejected
 
 
 # @jaxtyped(typechecker=beartype)
-def _sample_morph(batch_size: int, dof: int, analytically_solvable: bool) -> Float[Tensor, "batch_size {dof+1} 3"]:
+def _sample_morph(batch_size: int, dof: int, analytically_solvable: bool, device=torch.device) \
+        -> Float[Tensor, "batch_size {dof+1} 3"]:
     """
     Sample morphologies, encoded as MDH parameters (alpha, a, d), given their respective rejection criteria.
 
@@ -186,20 +189,21 @@ def _sample_morph(batch_size: int, dof: int, analytically_solvable: bool) -> Flo
         batch_size: number of robots to sample
         dof: degrees of freedom of the robots
         analytically_solvable: whether to sample only analytically solvable robots
+        device: Torch device.
 
     Returns:
         MDH parameters (alpha, a, d) describing the robot morphology
     """
     oversampling = 2 * batch_size
     if analytically_solvable:
-        link_types, link_twists = _sample_analytically_solvable_link_types_and_twist(oversampling, dof)
+        link_types, link_twists = _sample_analytically_solvable_link_types_and_twist(oversampling, dof, device)
         while (mask := _reject_link_type(link_types) | _reject_link_twist(link_twists, link_types)).any():
             link_types[mask], link_twists[mask] = _sample_analytically_solvable_link_types_and_twist(mask.sum().item(),
-                                                                                                     dof)
+                                                                                                     dof, device)
     else:
-        link_types = _sample_link_type(oversampling, dof)
+        link_types = _sample_link_type(oversampling, dof, device)
         while (mask := _reject_link_type(link_types)).any():
-            link_types[mask] = _sample_link_type(mask.sum().item(), dof)
+            link_types[mask] = _sample_link_type(mask.sum().item(), dof, device)
 
         link_twists = _sample_link_twist(link_types)
         while (mask := _reject_link_twist(link_twists, link_types)).any():
@@ -233,7 +237,8 @@ def get_joint_limits(morph: Float[Tensor, "*batch dof 3"]) -> Float[Tensor, "*ba
     alpha0, a0, d0 = extended_morph[..., :-2, :].split(1, dim=-1)
     alpha1, a1, d1 = extended_morph[..., 1:-1, :].split(1, dim=-1)
 
-    coordinate_fix = torch.eye(4, device=morph.device, dtype=morph.dtype).repeat(*morph.shape[:-2], morph.shape[-2] - 1, 1, 1)
+    coordinate_fix = torch.eye(4, device=morph.device, dtype=morph.dtype).repeat(*morph.shape[:-2], morph.shape[-2] - 1,
+                                                                                 1, 1)
     wrist = (a1[..., 0] == 0) & (d1[..., 0] == 0)
     coordinate_fix[wrist] = transformation_matrix(alpha0, a0, d0, torch.zeros_like(d0))[wrist]
 
@@ -251,7 +256,8 @@ def get_joint_limits(morph: Float[Tensor, "*batch dof 3"]) -> Float[Tensor, "*ba
     plane_normal = torch.sum(coordinate_fix * plane_normal, dim=-1)[..., :3]
     plane_anchor = torch.sum(coordinate_fix * plane_anchor, dim=-1)[..., :3]
 
-    stacked_morph = torch.stack([extended_morph[..., :-2, :], extended_morph[..., 1:-1, :], extended_morph[..., 2:, :]], dim=-2)
+    stacked_morph = torch.stack([extended_morph[..., :-2, :], extended_morph[..., 1:-1, :], extended_morph[..., 2:, :]],
+                                dim=-2)
     stacked_morph[~wrist, 0, :] = 0.0
     stacked_poses = forward_kinematics(stacked_morph, torch.zeros(*stacked_morph.shape[:-1], 1, device=morph.device))
     start, end = get_capsules(stacked_morph, stacked_poses)
@@ -313,7 +319,8 @@ def _reject_morph(morph: Float[Tensor, "batch_size dofp1 3"]) -> Bool[Tensor, "b
 
 
 # @jaxtyped(typechecker=beartype)
-def sample_morph(num_robots: int, dof: int, analytically_solvable: bool) -> Float[Tensor, "num_robots {dof+1} 3"]:
+def sample_morph(num_robots: int, dof: int, analytically_solvable: bool, device: torch.device= torch.device("cpu")) \
+        -> Float[Tensor, "num_robots {dof+1} 3"]:
     """
    Sample valid morphologies, encoded in modified Denavit-Hartenberg parameters (alpha, a, d).
 
@@ -321,17 +328,18 @@ def sample_morph(num_robots: int, dof: int, analytically_solvable: bool) -> Floa
        num_robots: number of robots to sample
        dof: degrees of freedom of the robots
        analytically_solvable: whether to sample only analytically solvable robots
+       device: Torch device to operate on.
 
    Returns:
        MDH parameters (alpha, a, d) describing the robot morphology
    """
     num_samples = int(num_robots * 1.5)
-    morph = _sample_morph(num_samples, dof, analytically_solvable)
+    morph = _sample_morph(num_samples, dof, analytically_solvable, device)
     while num_samples - (mask := _reject_morph(morph)).sum() < num_robots:
-        morph[mask] = _sample_morph(mask.sum().item(), dof, analytically_solvable)
+        morph[mask] = _sample_morph(mask.sum().item(), dof, analytically_solvable, device)
 
     return morph[~mask][:num_robots]
 
 
 if __name__ == "__main__":
-    sample_morph(num_robots=1, dof=6, analytically_solvable=False)
+    sample_morph(num_robots=1, dof=6, analytically_solvable=False, device=torch.device("cuda"))

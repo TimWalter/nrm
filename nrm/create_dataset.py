@@ -63,7 +63,7 @@ with lock:
                       shards=(SHARD_SIZE, sample_dim),
                       compressors=compressor)
 
-morphs = sample_morph(args.num_robots, args.dof, args.set != "train")
+morphs = sample_morph(args.num_robots, args.dof, False, torch.device("cuda"))
 root[morph_filename][0:] = torch.nn.functional.pad(morphs, (0, 0, 0, 8 - morphs.shape[1])).cpu().numpy()
 
 file = root[sample_filename]

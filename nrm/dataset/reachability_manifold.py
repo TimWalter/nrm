@@ -51,7 +51,7 @@ compiled_sample_reachable_poses = torch.compile(sample_reachable_poses)
 # @jaxtyped(typechecker=beartype)
 def estimate_reachability_manifold(morph: Float[Tensor, "dofp1 3"], debug: bool = False, seconds: int = 60,
                                    batch_size: int = None) -> \
-        Int64[Tensor, " num_samples"] | tuple[Int64[Tensor, " num_samples"], tuple[int, int, float, float, float], int]:
+        Int64[Tensor, "num_samples"] | tuple[Int64[Tensor, "num_samples"], tuple[int, int, float, float, float], int]:
     """
     Estimat the reachability manifold using only forward kinematics, a discretisation of SE(3) and the closed world assumption.
     Fill up the discretised cells using FK until convergence. All unfilled cells are assumed to be unreachable.
@@ -164,8 +164,8 @@ def sample_reachability_manifold(morph: Float[Tensor, "dofp1 3"],
                                  return_poses: bool = False,
                                  use_ik: bool = False,
                                  seconds: int = 60) -> \
-        tuple[Int64[Tensor, " num_samples"], Bool[Tensor, " num_samples"]] | \
-        tuple[Float[Tensor, " {num_samples} 4 4"], Bool[Tensor, " {num_samples}"]]:
+        tuple[Int64[Tensor, "num_samples"], Bool[Tensor, "num_samples"]] | \
+        tuple[Float[Tensor, "num_samples 4 4"], Bool[Tensor, "num_samples"]]:
     """
     Estimate the workspace of a robot solely from forward kinematics.
 
@@ -183,10 +183,10 @@ def sample_reachability_manifold(morph: Float[Tensor, "dofp1 3"],
     cell_indices = se3.index(poses)
 
     if not use_ik:
-        r_indices = estimate_reachability_manifold(morph.to("cuda"), seconds=seconds)
+        r_indices = estimate_reachability_manifold(morph, seconds=seconds)
         labels = torch.isin(cell_indices, r_indices)
     else:
-        joints, manipulability = inverse_kinematics(morph.to("cuda"), poses.to("cuda"))
+        joints, manipulability = inverse_kinematics(morph, poses)
         labels = manipulability.cpu() != -1
 
     return cell_indices if not return_poses else poses, labels
@@ -196,7 +196,7 @@ if __name__ == "__main__":
     from nrm.dataset.morphology import sample_morph
 
     torch.manual_seed(1)
-    morphs = sample_morph(10, 6, True)
+    morphs = sample_morph(10, 6, True, torch.device("cuda"))
     benchmarks = []
     for morph in morphs:
         morph = morph.to("cuda")
