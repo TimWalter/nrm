@@ -215,6 +215,7 @@ class TrainingSet(Dataset):
 class ValidationSet(Dataset):
     @jaxtyped(typechecker=beartype)
     def __init__(self, batch_size: int, shuffle: bool, path: str = "val"):
+        self.path = path
         super().__init__(batch_size, shuffle, path)
 
     @jaxtyped(typechecker=beartype)
