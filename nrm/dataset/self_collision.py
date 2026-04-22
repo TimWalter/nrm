@@ -1,5 +1,3 @@
-from typing import Optional
-
 import torch
 
 from torch import Tensor
@@ -11,7 +9,7 @@ EPS = 1e-4
 
 # @jaxtyped(typechecker=beartype)
 def get_capsules(mdh: Float[Tensor, "*batch dofp1 3"],
-                 poses: Optional[Float[Tensor, "*batch dofp1 4 4"]]) -> tuple[
+                 poses: Float[Tensor, "*batch dofp1 4 4"]) -> tuple[
     Float[Tensor, "*batch 2*dofp1 3"],
     Float[Tensor, "*batch 2*dofp1 3"],
 ]:
@@ -180,7 +178,7 @@ def collision_check(mdh: Float[Tensor, "*batch dofp1 3"],
         collisions_end = collisions_end.any(dim=-1)
         return collisions | collisions_end
     else:
-        critical_distance = (distances*collisions).min(dim=-1).values.reshape(batch_shape)
-        critical_distance_end = (distance_end*collisions_end).min(dim=-1).values
+        critical_distance = torch.where(collisions, distances, torch.ones_like(distances)*torch.inf).min(dim=-1).values.reshape(batch_shape)
+        critical_distance_end = torch.where(collisions_end, distance_end, torch.ones_like(distance_end)*torch.inf).min(dim=-1).values.reshape(batch_shape)
         return torch.stack([critical_distance, critical_distance_end], dim=-1).min(dim=-1).values
 
