@@ -582,3 +582,61 @@ def display_sphere(preds, names, radius, return_fig: bool = False):
         return fig
     else:
         fig.show()
+
+def visualise_trajectories(morph, trajectories:list[Tensor], labels:list[Tensor], names:list[str]):
+    fig = make_subplots(
+        rows=1, cols=1,
+        specs=[[{"type": "scene"}]],
+        horizontal_spacing=0.01,
+        vertical_spacing=0.05,
+    )
+    colors = sns.color_palette("colorblind", n_colors=2*len(trajectories)).as_hex()
+    i = -1
+    for t, l, n in zip(trajectories, labels, names):
+        for trace in get_pose_traces(morph, t[l], colors[i := i+1], f"Reachable ({n})", True):
+            fig.add_trace(trace, 1, 1)
+        for trace in get_pose_traces(morph, t[~l], colors[i := i+1], f"Unreachable ({n})", True):
+            fig.add_trace(trace, 1, 1)
+
+
+    # Clean up Layout
+    fig.update_layout(
+        margin=dict(l=10, r=10, b=10, t=40),  # Minimize outer margins
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.0,
+            xanchor="center",
+            x=0.5,
+            itemsizing='constant',
+            groupclick='togglegroup',
+            bgcolor='rgba(255,255,255,0.8)'
+        ),
+        paper_bgcolor='white',
+        height=1000,  # Dynamic height
+        width=1500,  # Fixed comfortable width
+    )
+    axis_style = dict(
+        showgrid=True,
+        gridcolor='lightgray',  # Subtle grid lines
+        gridwidth=1,
+        range=[-1, 1],
+        showbackground=False,  # Hides the gray walls (cleaner look)
+        zeroline=True,  # distinct line at 0
+        zerolinecolor='gray',
+        showticklabels=True,
+        title_font=dict(size=10),
+        tickfont=dict(size=8)
+    )
+
+    fig.update_scenes(
+        aspectmode='cube',
+        xaxis=dict(title='X', **axis_style),
+        yaxis=dict(title='Y', **axis_style),
+        zaxis=dict(title='Z', **axis_style),
+        camera=dict(
+            eye=dict(x=1.5, y=1.5, z=1.5)
+        )
+    )
+
+    fig.show()
