@@ -177,7 +177,7 @@ class Logger:
         data |= self.compute_metrics(logit, label)
         data = self.assign_space(data, "Training")
 
-        if batch_idx % 10000 == 0:
+        if batch_idx % 50000 == 0:
             v_morph, v_pose, v_label = self.validation_set.get_semi_random_batch()
             v_morph = v_morph.to(self.device, non_blocking=True)
             v_pose = v_pose.to(self.device, non_blocking=True)
