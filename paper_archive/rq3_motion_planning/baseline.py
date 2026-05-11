@@ -181,6 +181,12 @@ if __name__ == "__main__":
 
         last_reachability = reachability[-1]
 
+        if s == 0:
+            pickle.dump(morph, open(save_dir / "morph.pkl", "wb"))
+            pickle.dump(target_trajectory, open(save_dir / "target_trajectory.pkl", "wb"))
+            pickle.dump(trajectory, open(save_dir / "trajectory.pkl", "wb"))
+            pickle.dump(last_reachability, open(save_dir / "last_reachability.pkl", "wb"))
+
     loss = bootstrap_mean_ci(torch.stack(loss_list).numpy())
     prediction_loss = bootstrap_mean_ci(torch.stack(prediction_loss_list).numpy())
     deviation_loss = bootstrap_mean_ci(torch.stack(deviation_loss_list).numpy())

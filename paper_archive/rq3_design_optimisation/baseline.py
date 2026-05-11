@@ -185,6 +185,12 @@ if __name__ == "__main__":
         last_reachability = reachability[-1]
         last_morph = morph[-1]
 
+        if s == 0:
+            pickle.dump(morph, open(save_dir / "morph.pkl", "wb"))
+            pickle.dump(initial_morph, open(save_dir / "initial_morph.pkl", "wb"))
+            pickle.dump(task, open(save_dir / "task.pkl", "wb"))
+            pickle.dump(last_reachability, open(save_dir / "last_reachability.pkl", "wb"))
+
     loss = bootstrap_mean_ci(torch.stack(loss_list).numpy())
     pose_loss = bootstrap_mean_ci(torch.stack(pose_loss_list).numpy())
     self_collision_loss = bootstrap_mean_ci(torch.stack(self_collision_loss_list).numpy())

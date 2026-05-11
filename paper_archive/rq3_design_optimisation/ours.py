@@ -1,4 +1,5 @@
 import torch
+from torch._C._jit_tree_views import Break
 
 from tqdm import tqdm
 from torch import Tensor
@@ -67,7 +68,7 @@ def ours(initial_morph: Float[Tensor, "dofp1 3"], task: Float[Tensor, "num_sampl
     task_vec = se3.to_vector(task)
     alpha = initial_morph[:, 0:1].clone()
 
-    lengths = initial_morph[:, 1:]
+    lengths = initial_morph[:, 1:].clone()
     lengths.requires_grad = True
 
     loss_list = []
@@ -165,6 +166,12 @@ if __name__ == "__main__":
 
         last_reachability = reachability[-1]
         last_morph = morph[-1]
+
+        if s == 0:
+            pickle.dump(morph, open(save_dir / "morph.pkl", "wb"))
+            pickle.dump(initial_morph, open(save_dir / "initial_morph.pkl", "wb"))
+            pickle.dump(task, open(save_dir / "task.pkl", "wb"))
+            pickle.dump(last_reachability, open(save_dir / "last_reachability.pkl", "wb"))
 
     loss = bootstrap_mean_ci(torch.stack(loss_list).numpy())
     pose_loss = bootstrap_mean_ci(torch.stack(pose_loss_list).numpy())

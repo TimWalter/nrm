@@ -8,8 +8,8 @@ color_false = palette[3]
 
 # Data
 data = [
-    {'label_left': 'Reachable Poses', 'val_left': 97.10, 'label_right': 'False Negatives', 'val_right': 2.90, 'color_l': color_true, 'color_r': color_false},
-    {'label_left': 'Unreachable Poses', 'val_left': 74.98, 'label_right': 'False Positives', 'val_right': 25.02, 'color_l': color_true, 'color_r': color_false}
+    {'label_left': 'Reachable poses', 'val_left': 97.10, 'label_right': 'False Negatives', 'val_right': 2.90, 'color_l': color_true, 'color_r': color_false},
+    {'label_left': 'Unreachable poses', 'val_left': 74.98, 'label_right': 'False Positives', 'val_right': 25.02, 'color_l': color_true, 'color_r': color_false}
 ]
 
 # --- Unified Styling ---
@@ -23,7 +23,7 @@ plt.rcParams.update({
 })
 
 # Create 1 row and 2 columns
-fig, axes = plt.subplots(1, 2, figsize=(17, 2.2))
+fig, axes = plt.subplots(1, 2, figsize=(17, 3))
 
 for i, entry in enumerate(data):
     ax = axes[i]
@@ -45,26 +45,26 @@ for i, entry in enumerate(data):
     ax.text(
         0.5, y,
         f"{entry['val_left']:.1f}%",
-        va='center', ha='left', color='white', rotation=90, fontweight='bold', fontsize=19
+        va='center', ha='left', color='white', rotation=90, fontweight='bold', fontsize=31
     )
 
     # Percentage on the far right (Fixed r_color to entry['color_r'])
     ax.text(
         100, y,
         f"{entry['val_right']:.1f}%",
-        va='center', ha='right', color="white", rotation=90, fontweight='bold', fontsize=19
+        va='center', ha='right', color="white", rotation=90, fontweight='bold', fontsize=31
     )
 
     ax.vlines(x=entry["val_left"], ymin=-0.5, ymax=0.4, colors="#FAF0F0")
     ax.text(
         entry["val_left"]+1, -0.55,
         "FP" if i == 0 else "FN",
-        va='center', ha='left', color=color_false, fontweight='bold', fontsize=20
+        va='center', ha='left', color=color_false, fontweight='bold', fontsize=34
     )
     ax.text(
         entry["val_left"]-1, -0.55,
         "TP" if i == 0 else "TN",
-        va='center', ha='right', color=color_true, fontweight='bold', fontsize=20
+        va='center', ha='right', color=color_true, fontweight='bold', fontsize=34
     )
 
     # Cleanup individual axis

@@ -148,7 +148,6 @@ if __name__ == "__main__":
     self_collision_list = []
 
     last_reachability = None
-    last_trajectory = None
     for s in range(100):
         torch.manual_seed(s)
         morph = sample_morph(1, 6, False, device)[0]
@@ -171,7 +170,12 @@ if __name__ == "__main__":
         self_collision_list += [self_collision]
 
         last_reachability = reachability[-1]
-        last_trajectory = trajectory
+
+        if s == 0:
+            pickle.dump(morph, open(save_dir / "morph.pkl", "wb"))
+            pickle.dump(target_trajectory, open(save_dir / "target_trajectory.pkl", "wb"))
+            pickle.dump(trajectory, open(save_dir / "trajectory.pkl", "wb"))
+            pickle.dump(last_reachability, open(save_dir / "last_reachability.pkl", "wb"))
 
     loss = bootstrap_mean_ci(torch.stack(loss_list).numpy())
     prediction_loss = bootstrap_mean_ci(torch.stack(prediction_loss_list).numpy())

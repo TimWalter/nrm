@@ -19,3 +19,4 @@ trace.json
 *.pth
 *.pickle
 *.pdf
+*.png
